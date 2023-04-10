@@ -1,16 +1,6 @@
 ##################### COMBINING DATASETS ##############################
 
-# Explore variable names
-
-## Industry
-### Industry section is INDS07M (main) and INDS07S (second) from 2009.
-
-## Occupation
-### 2011 to 2020 SC10MMJ (main job) and  SC10SMJ (second job)
-### 2021 and beyong is NSECMJ20 (main job) 
-
-
-# Standarising variable names across datasets
+# Standardizing variable names across datasets
 
 ## Creating the variable "quarter", "PIWT" for income weight, YEAR, and PWT for population weighs among others
 
@@ -179,7 +169,6 @@ variables <- c(
         "AGEEUL", # age bands
         "NSEC", # occupational category 
         "ETHUKEUL", # ethnic group
-        "DISEA", # Disability: equality act
 
         # MAIN JOB
         
@@ -205,7 +194,6 @@ variables <- c(
         "SECJOB", # Whether had second job in reference week
         "Y2JOB", # Whether had 2 jobs because of a change of job in reference week 
         "STAT2", # Employment status for those in regular second jobs
-        "INDS07S", # Industry section in second job 
         "occu2", # occupation in second job
         
         ## SECOND JOB - overall work arrangements
