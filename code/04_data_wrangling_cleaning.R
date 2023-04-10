@@ -1,5 +1,5 @@
 
-##################### LFS Data wrangling ##############################
+##################### LFS Data wrangling - feature engineering and cleaning ##########################
 
 # Load LFS combined dataset
 
