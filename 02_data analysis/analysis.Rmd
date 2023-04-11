@@ -1,0 +1,227 @@
+---
+title: "Part-time Workers in the UK"
+subtitle: 'Trends from 2018 to 2022'
+author: "TimeWise"
+date: '`r Sys.Date()`'
+output: 
+  word_document:
+      reference_docx: "Report_template.docx"
+      toc: FALSE
+      toc_depth: 3
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+	warning = FALSE,
+  collapse = TRUE)
+```
+
+```{r libraries, include=FALSE}
+
+#### packages needed
+if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+if(!require(gridExtra)) install.packages("girdExtra", repos = "http://cran.us.r-project.org")
+if(!require(Hmisc)) install.packages("Hmisc", repos = "http://cran.us.r-project.org")
+if(!require(sjlabelled)) install.packages("sjlabelled", repos = "http://cran.us.r-project.org")
+if(!require(ggthemes)) install.packages("ggthemes", repos = "http://cran.us.r-project.org")
+if(!require(ggtext)) install.packages("ggtext", repos = "http://cran.us.r-project.org")
+if(!require(ggrepel)) install.packages("ggrepel", repos = "http://cran.us.r-project.org")
+if(!require(doBy)) install.packages("doBy", repos = "http://cran.us.r-project.org")
+if(!require(sjmisc)) install.packages("sjmisc", repos = "http://cran.us.r-project.org")
+if(!require(plotly)) install.packages("plotly", repos = "http://cran.us.r-project.org")
+if(!require(flextable)) install.packages("flextable", repos = "http://cran.us.r-project.org")
+if(!require(scales)) install.packages("scales", repos = "http://cran.us.r-project.org")
+if(!require(ggalt)) install.packages("ggalt", repos = "http://cran.us.r-project.org")
+if(!require(janitor)) install.packages("janitor", repos = "http://cran.us.r-project.org")
+if(!require(bookdown)) install.packages("bookdown", repos = "http://cran.us.r-project.org")
+if(!require(rmdformats)) install.packages("rmdformats", repos = "http://cran.us.r-project.org")
+if(!require(htmlwidgets)) install.packages("htmlwidgets", repos = "http://cran.us.r-project.org")
+if(!require(widgetframe)) install.packages("widgetframe", repos = "http://cran.us.r-project.org")
+if(!require(shiny)) install.packages("shiny", repos = "http://cran.us.r-project.org")
+
+library(ggalt) # contingency table
+library(tidyverse) # several tools for data manipulation
+library(haven) # read SPSS, Stata, and SAS data
+library(gridExtra) # arrange multiple grid-based plots on a page
+library(Hmisc) # many functions useful for data analysis
+library(sjmisc) # useful to set Na's
+library(sjlabelled) # get_labels function
+library(ggthemes) # themes for ggplot2
+library(ggtext) # fancy text
+library(ggrepel) # help with the position of the labels on ggplot2 graph
+library(doBy) # 'do' something to data stratified 'by' some variables
+library(plotly) # interactive plots
+library(flextable) # formatting tables 
+library(scales) # add scale symbols and colour to axis
+library(janitor) # add totals to tables
+library(rmdformats)
+library(htmlwidgets)
+library(shiny)
+library(widgetframe)
+```
+
+
+## Background
+
+<p align="justify">People in employment can work on a full-time or a part-time basis. A part-time worker is someone who works fewer hours than a full-time worker. There is no specific number of hours that makes someone full or part-time, but a full-time worker will usually work 35 hours or more a week.</p> 
+
+<p align="justify">This report aims at mapping employment trends for part-time workers in the UK. We use the UK’s largest study on employment circumstances, the Labour Force Survey (LFS), drawing on analysis from the 2018 to 2022 releases (calendar quarters). Our analyses consider only those in employment (current jobs) between 18-64 years old. Table 1 summarises the sample size and population estimates for all the data waves considered in this analysis.</p> 
+
+```{r sample, echo=FALSE}
+
+N_total_2 <- LFS_clean %>%
+  filter(AGE >= 18 & AGE <= 64) %>% 
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(STAT <= 2) %>% # only employees and self-employed
+  filter(STATR <= 2) %>% # only employees and self-employed current job
+  group_by(as_label(QUARTER)) %>%
+  summarise(Sample = n(), Population = sum(PWT18)) 
+
+N_total_2 %>% flextable() %>% theme_vanilla() %>%
+  set_caption(caption = "Table 1: Sample size and population estimates", style = "Table Caption") %>%
+  bold(bold = TRUE, part = "header") %>%
+  set_header_labels(`as_label(QUARTER)` = "Quarter",
+                    Population = "Population estimates")  %>%
+  autofit() %>%
+  align_nottext_col(align = "center", header = TRUE, footer = FALSE) %>%
+  add_footer_lines("Source: UK Labour Force Survey (Person)") %>%
+  color(part = "footer", color = "#666666")  
+
+```
+
+<p align="justify">In the UK Labour Force Survey, the split between full-time and part-time employment is based on respondents’ self-classification. The average hours worked by part-timers, for all the periods included in this analysis, is hours.</p> 
+
+
+
+## Who is in part-time work?
+
+### By gender
+
+```{r gender, echo=FALSE}
+
+
+
+```
+
+
+### By age
+
+```{r age, echo=FALSE}
+
+
+
+```
+
+
+### By ethnicity 
+
+
+```{r ethnicity, echo=FALSE}
+
+
+
+```
+
+
+### By qualifications
+
+```{r qualifications, echo=FALSE}
+
+
+
+```
+
+### By occupational group
+
+```{r occupations, echo=FALSE}
+
+
+
+```
+
+
+### By intersections 
+
+```{r intersections, echo=FALSE}
+
+
+
+```
+
+
+
+## What are the reasons for part-time work?
+
+<p align="justify">Part-time jobs are lower paid than full-time jobs, on the whole, and they bring a range of career penalties. There are various reasons for working on a part-time basis. The Labour Force Survey disaggregates part-time employment by reason as follows:</p>
+
+- those who could not find full-time jobs
+- those who did not want full-time jobs
+- those who were ill or were disabled
+- those who were students or were at school
+
+<p align="justify">It also includes those who do not give a reason for part-time working. We focus on those who could not find and did not want full-time jobs in our analysis (involuntary part-time work).</p>
+
+
+### By sex 
+
+```{r reasons by sex, echo=FALSE}
+
+
+
+```
+
+### By age
+
+```{r reasons by age, echo=FALSE}
+
+
+
+```
+
+### By ethnicity
+
+```{r reasons by ethnicity, echo=FALSE}
+
+
+
+```
+
+
+### By qualifications
+
+```{r reasons by qualifications, echo=FALSE}
+
+
+
+```
+
+
+### By occupational group
+
+```{r reasons by occupations, echo=FALSE}
+
+
+
+```
+
+
+### By intersections
+
+```{r reasons by intersections, echo=FALSE}
+
+
+
+```
+
+
+## How much do they earn?
+
+
+
+
+## How many hours do they work?
+
+
