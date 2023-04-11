@@ -166,6 +166,7 @@ variables <- c(
         "COUNTRY",  # Country within UK
         "GOVTOF2", # gov region
         "SEX", # 1 male, 2 female
+        "AGE", # age for filtering
         "AGEEUL", # age bands
         "NSEC", # occupational category 
         "ETHUKEUL", # ethnic group

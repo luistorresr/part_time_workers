@@ -63,12 +63,21 @@ library(shiny)
 library(widgetframe)
 ```
 
+```{r load data, include=FALSE}
+
+load("../data/LFS_clean.rda")
+
+```
+
+
 
 ## Background
 
 <p align="justify">People in employment can work on a full-time or a part-time basis. A part-time worker is someone who works fewer hours than a full-time worker. There is no specific number of hours that makes someone full or part-time, but a full-time worker will usually work 35 hours or more a week.</p> 
 
-<p align="justify">This report aims at mapping employment trends for part-time workers in the UK. We use the UK’s largest study on employment circumstances, the Labour Force Survey (LFS), drawing on analysis from the 2018 to 2022 releases (calendar quarters). Our analyses consider only those in employment (current jobs) between 18-64 years old. Table 1 summarises the sample size and population estimates for all the data waves considered in this analysis.</p> 
+<p align="justify">This report aims at mapping employment trends for part-time workers in the UK. We use the UK’s largest study on employment circumstances, the Labour Force Survey (LFS), drawing on analysis from the 2018 to 2022 releases (calendar quarters). In the UK Labour Force Survey, the split between full-time and part-time employment is based on respondents’ self-classification. The average hours worked by part-timers, for all the periods included in this analysis, is hours.</p> 
+
+<p align="justify">Our analyses consider only those in employment (current jobs) between 18-64 years old. Table 1 summarises the sample size and population estimates for all the data waves considered in this analysis.</p> 
 
 ```{r sample, echo=FALSE}
 
@@ -77,8 +86,8 @@ N_total_2 <- LFS_clean %>%
   filter(ILODEFR == 1) %>% # only people in employment
   filter(STAT <= 2) %>% # only employees and self-employed
   filter(STATR <= 2) %>% # only employees and self-employed current job
-  group_by(as_label(QUARTER)) %>%
-  summarise(Sample = n(), Population = sum(PWT18)) 
+  group_by(as_label(quarter)) %>%
+  summarise(Sample = n(), Population = sum(PWT)) 
 
 N_total_2 %>% flextable() %>% theme_vanilla() %>%
   set_caption(caption = "Table 1: Sample size and population estimates", style = "Table Caption") %>%
@@ -91,8 +100,6 @@ N_total_2 %>% flextable() %>% theme_vanilla() %>%
   color(part = "footer", color = "#666666")  
 
 ```
-
-<p align="justify">In the UK Labour Force Survey, the split between full-time and part-time employment is based on respondents’ self-classification. The average hours worked by part-timers, for all the periods included in this analysis, is hours.</p> 
 
 
 

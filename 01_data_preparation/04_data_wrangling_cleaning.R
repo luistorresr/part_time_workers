@@ -266,31 +266,6 @@ LFS_clean$INDE07M <- set_labels(LFS_clean$INDE07M, labels = c(
                              "Other services" = 9))
 
 
-LFS_clean$INDS07S <- remove_all_labels(LFS_clean$INDS07S) # second job
-set_label(LFS_clean$INDS07S) <- "Industry section (Second job)" # add variable label
-LFS_clean$INDS07S <- set_labels(LFS_clean$INDS07S, labels = c("Agriculture, forestry and fishing" = 1,
-                                                        "Mining and quarrying" = 2,
-                                                        "Manufacturing" = 3,
-                                                        "Electricity, gas, steam and air conditioning supply" = 4,
-                                                        "Water supply, sewerage, waste management and remediation activities" = 5,
-                                                        "Construction" = 6,
-                                                        "Wholesale and retail trade; repair of motor vehicles and motorcycles" = 7,
-                                                        "Transportation and storage" = 8,
-                                                        "Accommodation and food service activities" = 9,
-                                                        "Information and communication" = 10,
-                                                        "Financial and insurance activities" = 11,
-                                                        "Real estate activities" = 12,
-                                                        "Professional, scientific and technical activities" = 13,
-                                                        "Administrative and support service activities" = 14,
-                                                        "Public administration and defence; compulsory social security" = 15,
-                                                        "Education" = 16,
-                                                        "Human health and social work activities" = 17,
-                                                        "Arts, entertainment and recreation"  = 18,
-                                                        "Other service activities" = 19,
-                                                        "Activities of households as employers; undifferentiated goods- and services producing activities of households for own use" = 20,
-                                                        "Activities of extraterritorial organisations and bodies" = 21))
-
-
 ## add value labels to Occupation
 
 LFS_clean$occu1 <- remove_all_labels(LFS_clean$occu1) # main job
@@ -505,3 +480,4 @@ save(LFS_clean, file = "./data/LFS_clean.rda")
 rm(list = ls()) # clean the global environment
 
 ######################### END WORKING WITH ORIGINAL DATASETS ##############################
+
