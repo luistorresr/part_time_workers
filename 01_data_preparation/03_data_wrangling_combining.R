@@ -188,7 +188,6 @@ variables <- c(
         ### work arrangements
         
         "JOBTYP", # Whether job permanent (1 = permanent / 2 = Not permanent in some way)
-        "WHYTMP6", # Reason for the job to be temporary 
 
         # SECOND JOB
         
@@ -284,3 +283,4 @@ save(LFS_combined, file = "data/LFS_combined.rda") # saving combine dataset in w
 rm(list = ls()) # clean the global environment to save memory
 
 ######################### END COMBINING DATASETS ####################################
+
