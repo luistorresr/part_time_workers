@@ -1,0 +1,1319 @@
+---
+title: "How does part-time work look like in the UK?"
+author: "TimeWise"
+date: "`r Sys.Date()`"
+output:
+  word_document: default
+  html_document: default
+subtitle: Trends from 2018 to 2022
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+	warning = FALSE,
+  embed_fonts = TRUE,
+  fig.align = "center",
+  fig_caption= TRUE,
+  use_bookdown= TRUE,
+  toc= FALSE,
+  toc_depth= 5
+)
+```
+
+```{r libraries, include=FALSE}
+
+#### packages needed
+if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+if(!require(gridExtra)) install.packages("girdExtra", repos = "http://cran.us.r-project.org")
+if(!require(Hmisc)) install.packages("Hmisc", repos = "http://cran.us.r-project.org")
+if(!require(sjlabelled)) install.packages("sjlabelled", repos = "http://cran.us.r-project.org")
+if(!require(ggthemes)) install.packages("ggthemes", repos = "http://cran.us.r-project.org")
+if(!require(ggtext)) install.packages("ggtext", repos = "http://cran.us.r-project.org")
+if(!require(ggrepel)) install.packages("ggrepel", repos = "http://cran.us.r-project.org")
+if(!require(doBy)) install.packages("doBy", repos = "http://cran.us.r-project.org")
+if(!require(sjmisc)) install.packages("sjmisc", repos = "http://cran.us.r-project.org")
+if(!require(flextable)) install.packages("flextable", repos = "http://cran.us.r-project.org")
+if(!require(scales)) install.packages("scales", repos = "http://cran.us.r-project.org")
+if(!require(ggalt)) install.packages("ggalt", repos = "http://cran.us.r-project.org")
+if(!require(janitor)) install.packages("janitor", repos = "http://cran.us.r-project.org")
+if(!require(bookdown)) install.packages("bookdown", repos = "http://cran.us.r-project.org")
+if(!require(rmdformats)) install.packages("rmdformats", repos = "http://cran.us.r-project.org")
+if(!require(officer)) install.packages("officer", repos = "http://cran.us.r-project.org")
+if(!require(showtext)) install.packages("showtext", repos = "http://cran.us.r-project.org")
+if(!require(colorspace)) install.packages("colorspace", repos = "http://cran.us.r-project.org")
+if(!require(patchwork)) install.packages("patchwork", repos = "http://cran.us.r-project.org")
+if(!require(sjstats)) install.packages("sjstats", repos = "http://cran.us.r-project.org")
+
+library(ggalt) # contingency table
+library(tidyverse) # several tools for data manipulation
+library(haven) # read SPSS, Stata, and SAS data
+library(gridExtra) # arrange multiple grid-based plots on a page
+library(Hmisc) # many functions useful for data analysis
+library(sjmisc) # useful to set Na's
+library(sjlabelled) # get_labels function
+library(ggthemes) # themes for ggplot2
+library(ggtext) # fancy text
+library(ggrepel) # help with the position of the labels on ggplot2 graph
+library(doBy) # 'do' something to data stratified 'by' some variables
+library(flextable) # formatting tables 
+library(scales) # add scale symbols and colour to axis
+library(janitor) # add totals to tables
+library(rmdformats)
+library(sjstats) # add weights 
+library(colorspace) # colour blind friendly pallettes 
+library(officer) # to add additional formatting to tables 
+library(patchwork) # to put graphs side by side
+library(showtext)
+  font_add_google("Lato")
+  showtext_auto()
+
+
+```
+
+```{r load data, include=FALSE}
+
+load("../data/LFS_clean.rda")
+
+```
+
+# Introduction
+
+People in employment can work on a full-time or a part-time basis. This report focuses on part-time workers. A part-time worker is someone who works fewer hours than a full-time worker. There is no specific number of hours that makes someone full or part-time, but a full-time worker will usually work 35 hours or more a week.
+
+This report aims at mapping employment trends for part-time workers in the UK. We use the UK’s largest study on employment circumstances, the Labour Force Survey (LFS), drawing on analysis from the 2018 to 2022 releases (calendar quarters). Our analyses consider only those in employment (employee and self-employed) between 18 and 64 years old. Table 1 summarises the sample size and population estimates for all the data waves considered in this analysis.
+
+
+```{r sample, echo=FALSE}
+
+population <- LFS_clean %>% 
+  group_by(as_factor(year), 
+           as_label(quarter)) %>%
+  summarise(Population = sum(na.omit(PWT))) %>%
+  rename(Year = `as_factor(year)`,
+         Quarter = `as_label(quarter)`) # Total population estimates
+
+workers <- LFS_clean %>%
+  filter(AGE >= 18 & AGE <= 64) %>% 
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(INECAC05 %in% c(1, 2)) %>% #only employees and self-employed
+  group_by(as_factor(year), 
+           as_label(quarter)) %>%
+  summarise(Workers = sum(PWT)) %>%
+  rename(Year = `as_factor(year)`,
+         Quarter = `as_label(quarter)`)  
+  
+N_total <- left_join(population, workers, by = c("Year", "Quarter")) # linking tables
+
+rm(population, workers)
+
+set_flextable_defaults(
+  theme_fun = theme_booktabs,
+  big.mark = ",", 
+  font.color = "#000000",
+  border.color = "#666666",
+  padding = 3,
+  font.family = "Arial")
+
+N_total %>% flextable() %>% autofit() %>%
+  set_caption(caption = as_paragraph("Table 1: Working population estimates")) %>%
+  bold(bold = FALSE, part = "header") %>%
+  merge_v(j = c("Year")) %>%
+  hline(i = c(4, 8, 12, 16), part = "body", border = fp_border(color="#666666", width = 0.5)) %>%
+  fix_border_issues(part = "body") %>%
+  add_footer_lines("Note: Workers (employees and self-employed) between 18-64 years old") %>%
+  color(part = "footer", color = "#666666") %>%
+  fontsize(size = 10, part = "footer")
+
+
+```
+
+
+# Who is in part-time work?
+
+## Part-time work is prevalent in the UK
+
+Part-time work is prevalent in the UK, especially so among women workers (Figure 1). The level of part-time employment among women had been tapering gently downwards before the pandemic hit, and this decline continued in 2020, falling 4% points from January/March 2020 to July/September 2022. Men have seen some slight increases in part-time working (1% point increase).
+
+```{r gender table, echo=FALSE}
+
+t_ptwrk_gender <- LFS_clean %>% # summary table
+  filter(AGE >= 18 & AGE <= 64) %>% 
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(INECAC05 %in% c(1, 2)) %>% #only employees and self-employed
+  group_by(year, sequence, quarter, SEX, FTPTWK) %>% 
+  summarise(count = sum(PWT)) %>% 
+  group_by(year, sequence, quarter, SEX,) %>% 
+  # percentage part-time per quarter
+  mutate(percentage = count/sum(count)) %>% 
+  filter(FTPTWK == 2) %>% # part time only  
+  as_label(.)
+
+```
+
+```{r total plot, fig.width= 11, fig.height=4, fig.fullwidth=TRUE, fig.cap= "Figure 1: Workers in a part-time job"}
+
+p_ptwrk_total <- t_ptwrk_gender %>% 
+  ggplot(aes(x = sequence, y = count, fill = factor(SEX))) + # line graph
+  geom_bar(stat="identity", position = "dodge", width=0.5) + 
+  geom_vline(xintercept = 4.5, color = "#c9c9c9") + # gridline 2018
+  geom_vline(xintercept = 8.5, color = "#c9c9c9") + # gridline 2019
+  geom_vline(xintercept = 12.5, color = "#c9c9c9") + # gridline 2020
+  geom_vline(xintercept = 16.5, color = "#c9c9c9") + # gridline 2021
+
+  # scale and colour
+  scale_color_discrete_qualitative(palette = "Dark 3") +
+  scale_y_continuous(breaks = seq(0,7000000, 500000), limits = c(0, 7000000), labels = comma) +
+  scale_x_continuous(breaks=c(1:20),
+                     labels=c("Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec")) +
+  # annotation
+  labs(x = "Calendar quarter", 
+       y = "Part-time workers",
+       #title ="Figure 1: Workers in a part-time job",
+       subtitle  = "Male and female workers, 2018-2022",
+      #caption = c("Data: UK Labour Force Survey")
+       ) +
+  annotate(geom = "text", x = 2.5, y = 6800000, label = "2018", size = 3.5) +
+  annotate(geom = "text", x = 6.5, y = 6800000, label = "2019", size = 3.5) +
+  annotate(geom = "text", x = 10.5, y = 6800000, label = "2020", size = 3.5) +
+  annotate(geom = "text", x = 14.5, y = 6800000, label = "2021", size = 3.5) +
+  annotate(geom = "text", x = 18.5, y = 6800000, label = "2022", size = 3.5) +
+
+  # theme
+  theme_economist_white(gray_bg = FALSE, base_family = "Lato") +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "lines"),
+        plot.title = element_text(size = 14, margin = ggplot2::margin(2, 0, 0, 0)),
+        plot.subtitle = element_text(size = 12, hjust = 0, margin = ggplot2::margin(8, 0, 10, 0), color = "gray30"),
+        axis.title.x = element_text(margin = ggplot2::margin(t = 8), size = 11),
+        axis.title.y = element_text(margin = ggplot2::margin(r = 5), size = 11),
+        axis.text.x = element_text(size = 11, margin = margin(t = 2)),
+        axis.text.y = element_text(size = 11),
+        axis.ticks.length.x = unit(0.1, "cm"), 
+        legend.position = "none", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 11),
+        panel.grid.major = element_line(color = "gray90", linewidth = .5),
+        strip.text = element_text(face = "bold", hjust = 0, size = 11)) + # change the face_wrap title
+  guides(col = guide_legend(nrow = 1, byrow = TRUE, override.aes = list(size = 3)))
+
+
+p_ptwrk_gender <- t_ptwrk_gender %>% 
+  ggplot(aes(x = sequence, y = percentage, colour = factor(SEX))) + # line graph
+  geom_line(size = 0.6, show.legend = FALSE) +  
+  geom_point(shape = 15, show.legend = TRUE) +
+  geom_vline(xintercept = 4.5, color = "#c9c9c9") + # gridline 2018
+  geom_vline(xintercept = 8.5, color = "#c9c9c9") + # gridline 2019
+  geom_vline(xintercept = 12.5, color = "#c9c9c9") + # gridline 2020
+  geom_vline(xintercept = 16.5, color = "#c9c9c9") + # gridline 2021
+
+  # scale and colour
+  scale_color_discrete_qualitative(palette = "Dark 3") +
+  scale_y_continuous(breaks = seq(0,1, 0.1), limits = c(0, 1), labels =
+                       scales::percent_format(accuracy = 1L)) +
+  scale_x_continuous(breaks=c(1:20),
+                     labels=c("Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec")) +
+  # annotation
+  labs(x = "Calendar quarter", 
+       y = "% of workers in a part-time job",
+       #title ="Figure 3: Percentage of workers in a part-time job",
+       #subtitle  = "By sex, 2018-2022",
+       caption = c("Data: UK Labour Force Survey")
+       ) +
+  annotate(geom = "text", x = 2.5, y = 0.95, label = "2018", size = 3.5) +
+  annotate(geom = "text", x = 6.5, y = 0.95, label = "2019", size = 3.5) +
+  annotate(geom = "text", x = 10.5, y = 0.95, label = "2020", size = 3.5) +
+  annotate(geom = "text", x = 14.5, y = 0.95, label = "2021", size = 3.5) +
+  annotate(geom = "text", x = 18.5, y = 0.95, label = "2022", size = 3.5) +
+
+  # theme
+  theme_economist_white(gray_bg = FALSE, base_family = "Lato") +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "lines"),
+        plot.title = element_text(size = 14, margin = ggplot2::margin(2, 0, 0, 0)),
+        plot.subtitle = element_text(size = 12, hjust = 0, margin = ggplot2::margin(5, 0, 8, 0)),
+        axis.title.x = element_text(margin = ggplot2::margin(t = 8), size = 11),
+        axis.title.y = element_text(margin = ggplot2::margin(r = 5), size = 11),
+        axis.text.x = element_text(size = 10, margin = margin(t = 2)),
+        axis.text.y = element_text(size = 11),
+        axis.ticks.length.x = unit(0.1, "cm"), 
+        legend.position = "left", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 11),
+        panel.grid.major = element_line(color = "gray90", linewidth = .5),
+        strip.text = element_text(face = "bold", hjust = 0, size = 11)) + # change the face_wrap title
+  guides(col = guide_legend(nrow = 2, byrow = TRUE, override.aes = list(size = 4)))
+
+
+
+p_ptwrk_total + p_ptwrk_gender 
+
+
+```
+
+## Age matters for part-time work
+
+Age plays an important role for those who are in a part-time job. As showed in Figure 2, male and female workers between 60 and 64 are more likely to find themselves in a part-time job. Younger workers between 18 and 29 years old are represented differently among male and female part-timers. While for male workers this group is the second most represented as part-timers, for female workers they show the lowest levels in all periods. 
+
+
+```{r age table, echo=FALSE}
+
+t_ptwrk_age <- LFS_clean %>% # table summary
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(INECAC05 %in% c(1, 2)) %>% #only employees and self-employed
+  group_by(year, sequence, quarter, SEX, AGEEUL3, FTPTWK) %>% 
+  summarise(count = sum(PWT)) %>% 
+  group_by(year, sequence, quarter, SEX, AGEEUL3) %>% 
+  # percentage part-time per quarter
+  mutate(percentage = count/sum(count)) %>% 
+  filter(FTPTWK == 2 & !(AGEEUL3 %in% c(1, 7))) %>% 
+  as_label(.)
+
+
+
+```
+
+```{r age plot, fig.width= 10, fig.height=4.5, fig.fullwidth=TRUE, fig.cap= "Figure 2: Percentage of workers in a part-time job by age"}
+
+p_ptwrk_age <- t_ptwrk_age %>% 
+  ggplot(aes(x = sequence, y = percentage, colour = factor(AGEEUL3))) + # line graph
+  geom_line(size = 0.7, show.legend = FALSE) +  
+  geom_point(shape = 19, show.legend = TRUE) +
+  geom_vline(xintercept = 4.5, color = "#c9c9c9") + # gridline 2018
+  geom_vline(xintercept = 8.5, color = "#c9c9c9") + # gridline 2019
+  geom_vline(xintercept = 12.5, color = "#c9c9c9") + # gridline 2020
+  geom_vline(xintercept = 16.5, color = "#c9c9c9") + # gridline 2021
+  facet_grid(. ~ SEX) +
+  
+  # scale and colour
+  scale_color_discrete_qualitative(palette = "Set 2") +
+  scale_y_continuous(breaks = seq(0,1, 0.1), limits = c(0, 1), labels =
+                       scales::percent_format(accuracy = 1L), sec.axis = dup_axis()) +
+  scale_x_continuous(breaks=c(1:20),
+                     labels=c("Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec")) +
+  # annotation
+  labs(x = "Calendar quarter", 
+       y = "% of workers in a part-time job",
+       #title ="Figure 2: Percentage of workers in a part-time job by age",
+       subtitle  = "Male and female workers by age group, 2018-2022",
+       caption = c("Data: UK Labour Force Survey")
+       ) +
+  annotate(geom = "text", x = 2.5, y = 0.95, label = "2018", size = 3.2) +
+  annotate(geom = "text", x = 6.5, y = 0.95, label = "2019", size = 3.2) +
+  annotate(geom = "text", x = 10.5, y = 0.95, label = "2020", size = 3.2) +
+  annotate(geom = "text", x = 14.5, y = 0.95, label = "2021", size = 3.2) +
+  annotate(geom = "text", x = 18.5, y = 0.95, label = "2022", size = 3.2) +
+
+# theme
+  theme_economist_white(gray_bg = FALSE, base_family = "Lato") +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "lines"),
+        plot.title = element_text(size = 14, margin = ggplot2::margin(2, 0, 0, 0)),
+        plot.subtitle = element_text(size = 12, hjust = 0, margin = ggplot2::margin(5, 0, 5, 0), colour = "grey30"),
+        axis.title.x = element_text(margin = ggplot2::margin(t = 8), size = 11),
+        axis.title.y = element_text(margin = ggplot2::margin(r = 5), size = 11),
+        axis.text.x = element_text(size = 11, margin = margin(t = 2)),
+        axis.text.y = element_text(size = 11),
+        axis.ticks.length.x = unit(0.1, "cm"), 
+        axis.text.y.right =  element_text(margin = margin(l = 4)),
+        axis.title.y.right = element_blank(),
+        legend.position = "top", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 11),
+        panel.grid.major = element_line(color = "gray90", linewidth = .5),
+        strip.text = element_text(face = "bold", hjust = 0, size = 11, margin = ggplot2::margin(t = 5, b = 5))) + 
+  guides(col = guide_legend(nrow = 1, byrow = TRUE, override.aes = list(size = 5)))
+
+p_ptwrk_age # print the plot
+
+```
+
+## Slight decline for most ethnic group workers
+
+The pandemic saw the small part-time gap between ethnic-minority and white workers narrow further (see Figure 3). This was caused by a slight decline in part-time working among female workers from minority-ethnic groups after the summer of 2020, taking their level below that of the white majority. However, male workers from minority-ethnic groups tend to be more represented in part-time jobs compared to their white counterparts. 
+
+
+```{r ethnicity table, echo=FALSE}
+
+t_ptwrk_ethnicity <- LFS_clean %>% # summary table
+  filter(AGE >= 18 & AGE <= 64) %>% 
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(INECAC05 %in% c(1, 2)) %>% #only employees and self-employed
+  group_by(year, sequence, quarter, SEX, ETHUKEUL3, FTPTWK) %>% 
+  summarise(count = sum(PWT)) %>% 
+  group_by(year, quarter, SEX, ETHUKEUL3) %>% 
+  # percentage part-time per quarter
+  mutate(percentage = count/sum(count)) %>% 
+  filter(FTPTWK == 2 & !is.na(ETHUKEUL3)) %>% # part time only  
+  as_label(.)
+
+```
+
+```{r ethinicty plot, fig.width= 10, fig.height=7, fig.fullwidth=TRUE, fig.cap= "Figure 3: Percentage of workers in a part-time job by ethnicity"}
+
+p_ptwrk_ethnicity <- t_ptwrk_ethnicity %>% 
+  ggplot(aes(x = sequence, y = percentage, colour = factor(SEX))) + # line graph
+  geom_line(size = 0.7, show.legend = FALSE) +  
+  geom_point(shape = 19, show.legend = TRUE) +
+  geom_vline(xintercept = 4.5, color = "#c9c9c9") + # gridline 2018
+  geom_vline(xintercept = 8.5, color = "#c9c9c9") + # gridline 2019
+  geom_vline(xintercept = 12.5, color = "#c9c9c9") + # gridline 2020
+  geom_vline(xintercept = 16.5, color = "#c9c9c9") + # gridline 2021
+  facet_wrap(. ~ ETHUKEUL3) +
+  
+  # scale and colour
+  scale_color_discrete_qualitative(palette = "Set 2") +
+  scale_y_continuous(breaks = seq(0,1, 0.1), limits = c(0, 1), labels =
+                       scales::percent_format(accuracy = 1L), sec.axis = dup_axis()) +
+  scale_x_continuous(breaks=c(1:20),
+                     labels=c("Q1","Q2","Q3","Q4",
+                             "Q1","Q2","Q3","Q4",
+                             "Q1","Q2","Q3","Q4",
+                             "Q1","Q2","Q3","Q4",
+                             "Q1","Q2","Q3","Q4")) +
+  # annotation
+  labs(x = "Calendar quarter", 
+       y = "% of workers in a part-time job",
+       #title ="Figure 3: Percentage of workers in a part-time job by ethnicity",
+       subtitle  = "Male and female workers by ethnic group, 2018-2022",
+       caption = c("Data: UK Labour Force Survey")
+       ) +
+  annotate(geom = "text", x = 2.5, y = 0.95, label = "2018", size = 3.2) +
+  annotate(geom = "text", x = 6.5, y = 0.95, label = "2019", size = 3.2) +
+  annotate(geom = "text", x = 10.5, y = 0.95, label = "2020", size = 3.2) +
+  annotate(geom = "text", x = 14.5, y = 0.95, label = "2021", size = 3.2) +
+  annotate(geom = "text", x = 18.5, y = 0.95, label = "2022", size = 3.2) +
+
+# theme
+  theme_economist_white(gray_bg = FALSE, base_family = "Lato") +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "lines"),
+        plot.title = element_text(size = 14, margin = ggplot2::margin(2, 0, 0, 0)),
+        plot.subtitle = element_text(size = 12, hjust = 0, margin = ggplot2::margin(5, 0, 8, 0), colour = "grey30"),
+        axis.title.x = element_text(margin = ggplot2::margin(t = 8), size = 11),
+        axis.title.y = element_text(margin = ggplot2::margin(r = 5), size = 11),
+        axis.text.x = element_text(size = 9, margin = margin(t = 2)),
+        axis.text.y = element_text(size = 11),
+        axis.text.y.right =  element_text(margin = margin(l = 4)),
+        axis.title.y.right = element_blank(),
+        axis.ticks.length.x = unit(0.1, "cm"), 
+        legend.position = "top", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 11),
+        panel.grid.major = element_line(color = "gray90", linewidth = .5),
+        strip.text = element_text(face = "bold", hjust = 0, size = 11, margin = ggplot2::margin(t = 5, b = 5))) + # change the face_wrap title
+  guides(col = guide_legend(override.aes = list(size = 5)))
+
+p_ptwrk_ethnicity # print the plot
+
+```
+
+
+## Routine, semi-routine and the self-employed are more like to be part-timers
+
+Part-time jobs are over-concentrated in routine and semi-routine occupations as well as self-employed workers in the UK (see Figure 4). Semi-routine and routine occupations include jobs such as postal worker, machine operative, security guard, caretaker, farm worker, catering assistant, sales assistant, cleaner, porter, packer, waiter/waitress, and bar staff among others. The self-employed (small employers and own account workers) have experienced a progressive rise in part-time working in the last two years. In contrast, far fewer senior staff work part-time (management and professionals). The pandemic did little to alter this picture, and trends in relative levels of part-time working remained virtually unchanged across the occupational groupings in 2020. 
+
+```{r class table, echo=FALSE}
+
+t_ptwrk_class <- LFS_clean %>% # summary table
+  filter(AGE >= 18 & AGE <= 64) %>% 
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(INECAC05 %in% c(1, 2)) %>% #only employees and self-employed
+  group_by(year, sequence, quarter, SEX, NSEC2, FTPTWK) %>% 
+  summarise(count = sum(PWT)) %>% 
+  group_by(year, quarter, SEX, NSEC2) %>% 
+  # percentage part-time per quarter
+  mutate(percentage = count/sum(count)) %>% 
+  filter(FTPTWK == 2 & !is.na(NSEC2)) %>% # part time only  
+  filter(!NSEC2 == 6) %>%
+  as_label(.)
+
+```
+
+```{r class plot, fig.width= 10, fig.height=4.5, fig.fullwidth=TRUE, fig.cap= "Figure 4: Percentage of workers in a part-time job by occupational category"}
+
+p_ptwrk_class <- t_ptwrk_class %>% 
+  ggplot(aes(x = sequence, y = percentage, colour = factor(NSEC2))) + # line graph
+  geom_line(size = 0.7, show.legend = FALSE) +  
+  geom_point(shape = 19, show.legend = TRUE) +
+  geom_vline(xintercept = 4.5, color = "#c9c9c9") + # gridline 2018
+  geom_vline(xintercept = 8.5, color = "#c9c9c9") + # gridline 2019
+  geom_vline(xintercept = 12.5, color = "#c9c9c9") + # gridline 2020
+  geom_vline(xintercept = 16.5, color = "#c9c9c9") + # gridline 2021
+  facet_wrap(. ~ SEX) +
+  
+  # scale and colour
+  scale_color_discrete_qualitative(palette = "Set 2") +
+  scale_y_continuous(breaks = seq(0,1, 0.1), limits = c(0, 1), labels =
+                       scales::percent_format(accuracy = 1L), sec.axis = dup_axis()) +
+  scale_x_continuous(breaks=c(1:20),
+                     labels=c("Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec")) +
+  # annotation
+  labs(x = "Calendar quarter", 
+       y = "% of workers in a part-time job",
+       #title ="Figure 4: Percentage of workers in a part-time job by occupational category",
+       subtitle  = "Male and female workers by occupation, 2018-2022",
+       caption = c("Data: UK Labour Force Survey")
+       ) +
+  annotate(geom = "text", x = 2.5, y = 0.95, label = "2018", size = 3.2) +
+  annotate(geom = "text", x = 6.5, y = 0.95, label = "2019", size = 3.2) +
+  annotate(geom = "text", x = 10.5, y = 0.95, label = "2020", size = 3.2) +
+  annotate(geom = "text", x = 14.5, y = 0.95, label = "2021", size = 3.2) +
+  annotate(geom = "text", x = 18.5, y = 0.95, label = "2022", size = 3.2) +
+
+# theme
+  theme_economist_white(gray_bg = FALSE, base_family = "Lato") +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "lines"),
+        plot.title = element_text(size = 14, margin = ggplot2::margin(2, 0, 0, 0)),
+        plot.subtitle = element_text(size = 12, hjust = 0, margin = ggplot2::margin(5, 0, 5, 0), colour = "grey30"),
+        axis.title.x = element_text(margin = ggplot2::margin(t = 8), size = 11),
+        axis.title.y = element_text(margin = ggplot2::margin(r = 5), size = 11),
+        axis.text.x = element_text(size = 11, margin = margin(t = 2)),
+        axis.text.y = element_text(size = 11),
+        axis.ticks.length.x = unit(0.1, "cm"), 
+        axis.text.y.right =  element_text(margin = margin(l = 4)),
+        axis.title.y.right = element_blank(),
+        legend.position = "top", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 11),
+        panel.grid.major = element_line(color = "gray90", linewidth = .5),
+        strip.text = element_text(face = "bold", size = 11,  hjust = 0)) + # change the face_wrap title
+  guides(col = guide_legend(nrow = 1, byrow = TRUE, override.aes = list(size = 4)))
+
+p_ptwrk_class # print the plot
+
+```
+
+### Part-time work is more common among workers with no qualifications
+
+Those male and female workers with no formal qualification are more likely to be in a part-time job (see Figure 5). This trend is the same for men and women, but much worse for women. On the other hand, those workers with a degree or equivalent are less represented in part-time work. 
+
+```{r education table, echo=FALSE}
+
+t_ptwrk_education <- LFS_clean %>% # summary table
+  filter(AGE >= 18 & AGE <= 64) %>% 
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(INECAC05 %in% c(1, 2)) %>% #only employees and self-employed
+  group_by(year, sequence, quarter, SEX, quali2, FTPTWK) %>% 
+  summarise(count = sum(PWT)) %>% 
+  group_by(year, quarter, SEX, quali2) %>% 
+  # percentage part-time per quarter
+  mutate(percentage = count/sum(count)) %>% 
+  filter(FTPTWK == 2) %>% # part time only  
+  filter(!quali2 %in% c("0")) %>%
+  filter(!is.na(quali2)) %>%
+  as_label(.)
+
+```
+
+```{r education plot, fig.width= 9, fig.height=5, fig.fullwidth=TRUE, fig.cap= "Figure 5: Percentage of workers in a part-time job by educational level"}
+
+p_ptwrk_education <- t_ptwrk_education %>%
+  ggplot(aes(x = sequence, y = percentage, colour = factor(quali2))) + # line graph
+  geom_line(size = 0.7, show.legend = FALSE) +  
+  geom_point(shape = 19, show.legend = TRUE) +
+  geom_vline(xintercept = 4.5, color = "#c9c9c9") + # gridline 2018
+  geom_vline(xintercept = 8.5, color = "#c9c9c9") + # gridline 2019
+  geom_vline(xintercept = 12.5, color = "#c9c9c9") + # gridline 2020
+  geom_vline(xintercept = 16.5, color = "#c9c9c9") + # gridline 2021
+  facet_wrap(. ~ SEX) +
+  
+  # scale and colour
+  scale_color_discrete_qualitative(palette = "Dark 3") + # Pastel 1, Dark 2, Dark 3, Set 2, Set 3, Warm, Cold, Harmonic, Dynamic
+  scale_y_continuous(breaks = seq(0,1, 0.1), limits = c(0, 1), labels =
+                       scales::percent_format(accuracy = 1L)) +
+  scale_x_continuous(breaks=c(1:20),
+                     labels=c("Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec")) +
+  # annotation
+  labs(x = "Calendar quarter", 
+       y = "% of workers in a part-time job",
+       #title ="Figure 5: Percentage of workers in a part-time job by educational level",
+       subtitle  = "Male and female workers by highest qualification, 2018-2022",
+       caption = c("Note: Percentage do not include no answer (NA). Do not know is not included in the figure")
+       ) +
+  annotate(geom = "text", x = 2.5, y = 0.95, label = "2018", size = 3.2) +
+  annotate(geom = "text", x = 6.5, y = 0.95, label = "2019", size = 3.2) +
+  annotate(geom = "text", x = 10.5, y = 0.95, label = "2020", size = 3.2) +
+  annotate(geom = "text", x = 14.5, y = 0.95, label = "2021", size = 3.2) +
+  annotate(geom = "text", x = 18.5, y = 0.95, label = "2022", size = 3.2) +
+
+# theme
+  theme_economist_white(gray_bg = FALSE, base_family = "Lato") +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "lines"),
+        plot.title = element_text(size = 14, margin = ggplot2::margin(2, 0, 0, 0)),
+        plot.subtitle = element_text(size = 12, hjust = 0, margin = ggplot2::margin(5, 0, 5, 0), colour = "grey30"),
+        axis.title.x = element_text(margin = ggplot2::margin(t = 8, b = 10), size = 11),
+        axis.title.y = element_text(margin = ggplot2::margin(r = 5), size = 11),
+        axis.text.x = element_text(size = 9, margin = margin(t = 2)),
+        axis.text.y = element_text(size = 11),
+        axis.ticks.length.x = unit(0.1, "cm"), 
+        legend.position = "top", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 11),
+        panel.grid.major = element_line(color = "gray90", linewidth = .5),
+        strip.text = element_text(face = "bold", size = 11,  hjust = 0)) + # change the face_wrap title
+  guides(col = guide_legend(nrow = 2, byrow = TRUE, override.aes = list(size = 4)))
+
+p_ptwrk_education # print the plot
+
+```
+
+
+# How many hours do part-time workers work?
+
+In the UK Labour Force Survey, the split between full-time and part-time employment is based on respondents’ self-classification. The median hours worked by part-timers is 20 in each period considered in this analysis (see Figure 6). The distribution of hours worked for men and women shows almost no variation during all periods. 75% of part-time workers worked up to 25 hours per week, while 50% did from a minimum of 15 hours to a maximum of 25 hours. Figure 1 also shows that some workers identify themselves as part-timers even when they worked 35 or more hours.  
+
+```{r table part-time hours}
+
+options(digits = 3)
+
+t_ptwrk_hr <- LFS_clean %>% # summary table
+  filter(AGE >= 18 & AGE <= 64) %>% 
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(FTPTWK == 2) %>%  # only part-timers
+  filter(INECAC05 %in% c(1, 2)) %>% #only employees and self-employed
+  select(year, quarter, BUSHR) %>% # usual hours 
+  filter(!is.na(BUSHR)) %>%
+  group_by(as_factor(year), quarter) %>%
+  summarise(Hours = median(BUSHR)) %>%
+  as_label(.) %>%
+  pivot_wider(names_from = quarter, values_from = Hours)
+
+set_label(t_ptwrk_hr$Hours) <- "Usual hours"
+
+  
+```
+
+```{r gender hours plot, fig.width= 9, fig.height= 4, fig.fullwidth=TRUE, fig.cap= "Figure 6: Usual hours per week for part-time workers"}
+
+p_hours_gender <- LFS_clean %>% 
+  filter(AGE >= 18 & AGE <= 64) %>%
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(INECAC05 %in% c(1, 2)) %>% #only employees and self-employed
+  filter(FTPTWK == 2) %>%  # only part-timers
+  filter(!is.na(BUSHR)) %>% # remove NAs in hours 
+  ggplot(aes(x = factor(sequence), y = BUSHR, fill = as_label(SEX))) + # idenfifying x and y axis 
+  geom_boxplot(alpha=0.3, outlier.shape=TRUE, show.legend = TRUE, outlier.colour = "gray50") + # boxplot
+  geom_vline(xintercept = 4.5, color = "#c9c9c9") + # gridline 2018
+  geom_vline(xintercept = 8.5, color = "#c9c9c9") + # gridline 2019
+  geom_vline(xintercept = 12.5, color = "#c9c9c9") + # gridline 2020
+  geom_vline(xintercept = 16.5, color = "#c9c9c9") + # gridline 2021
+
+  # scale and colour
+  coord_cartesian(ylim = c(0, 52)) +
+  scale_fill_discrete_qualitative(palette = "Dark 3") +
+  scale_y_continuous(breaks = seq(0,50, 5), limits = c(0, 52)) +
+  scale_x_discrete(limits=c("1","2","3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"),
+                   labels=c("Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec")) +
+  # annotation
+  labs(x = "Calendar quarter", 
+       y = "Usual hours",
+       #title ="Figure 6: Usual hours per week for part-time workers",
+       subtitle  = "Usual hours worked in a standard week for male and female part-time workers, 2018-2022",
+       caption = c("Data: UK Labour Force Survey")
+       ) +
+  annotate(geom = "text", x = 2.5, y = 52, label = "2018", size = 3.5) +
+  annotate(geom = "text", x = 6.5, y = 52, label = "2019", size = 3.5) +
+  annotate(geom = "text", x = 10.5, y = 52, label = "2020", size = 3.5) +
+  annotate(geom = "text", x = 14.5, y = 52, label = "2021", size = 3.5) +
+  annotate(geom = "text", x = 18.5, y = 52, label = "2022", size = 3.5) +
+
+  # theme
+  theme_economist_white(gray_bg = FALSE, base_family = "Lato") +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "lines"),
+        plot.title = element_text(size = 14, margin = ggplot2::margin(2, 0, 0, 0)),
+        plot.subtitle = element_text(size = 12, hjust = 0, margin = ggplot2::margin(8, 0, 5, 0), colour = "gray30"),
+        axis.title.x = element_text(margin = ggplot2::margin(t = 8), size = 11),
+        axis.title.y = element_text(margin = ggplot2::margin(r = 5), size = 11),
+        axis.text.x = element_text(size = 11, margin = margin(t = 2)),
+        axis.text.y = element_text(size = 11),
+        axis.ticks.length.x = unit(0.1, "cm"), 
+        legend.position = "top", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 11),
+        panel.grid.major = element_line(color = "gray90", linewidth = .5),
+        strip.text = element_text(face = "bold", hjust = 0, size = 11)) + # change the face_wrap title
+  guides(col = guide_legend(nrow = 1, byrow = TRUE, override.aes = list(size = 4)))
+
+p_hours_gender 
+
+
+```
+
+
+## Do they want to work more hours?
+
+Despite women being more represented in part-time work, only around 15% of female part-timers would like to work longer hours in their current jobs (see Figure 7). This number increased in 2020 when the pandemic hit. Male part-timers showed an increased in their wishes to work more hours in their current jobs from early 2019 and until the last quarter of 2020. Then, their interest in longer hours decreased to 20% in late 2021, and remained around 23% in 2022.
+
+From those part-timers wanting to work longer hours, the distribution of hours shows some differences between male and female workers. Overall, men would like to work more hours than women do. This trend has shown great variation in the last couple of years. The median difference in hours for men and women is around 2 to 3 hours for most years. However, this difference has reduced during the last three quarters of 2022 where the total median hours is 10 for both groups.
+
+```{r under gender table, echo=FALSE}
+
+t_under_gender <- LFS_clean %>% # summary table
+  filter(AGE >= 18 & AGE <= 64) %>% 
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(INECAC05 %in% c(1, 2)) %>% #only employees and self-employed
+  filter(DIFJOB == 2) %>% # only those who are not looking for an additional job or change job
+  filter(FTPTWK == 2) %>% # part time only 
+  group_by(year, sequence, quarter, SEX, UNDEMP) %>% 
+  summarise(count = sum(PWT)) %>% 
+  group_by(year, sequence, quarter, SEX) %>% 
+  # percentage part-time per quarter
+  mutate(percentage = count/sum(count)) %>% 
+  filter(UNDEMP == 1) %>%
+  as_label(.)
+
+
+```
+
+
+```{r under gender plot, fig.width=9, fig.height=8, fig.fullwidth=TRUE, fig.cap= "Figure 7: Part-timers who would like to work longer hours"}
+
+p_under_gender <- t_under_gender %>% 
+  ggplot(aes(x = sequence, y = percentage, colour = factor(SEX))) + # line graph
+  geom_line(size = 0.6, show.legend = FALSE) +  
+  geom_point(shape = 15, show.legend = TRUE) +
+  geom_vline(xintercept = 4.5, color = "#c9c9c9") + # gridline 2018
+  geom_vline(xintercept = 8.5, color = "#c9c9c9") + # gridline 2019
+  geom_vline(xintercept = 12.5, color = "#c9c9c9") + # gridline 2020
+  geom_vline(xintercept = 16.5, color = "#c9c9c9") + # gridline 2021
+
+  # scale and colour
+  scale_color_discrete_qualitative(palette = "Dark 3") +
+  scale_y_continuous(breaks = seq(0,1, 0.1), limits = c(0, 1), labels =
+                       scales::percent_format(accuracy = 1L)) +
+  scale_x_continuous(breaks=c(1:20),
+                     labels=c("Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec")) +
+  # annotation
+  labs(x = " ", 
+       y = "% of part-time workers",
+       #title ="Figure 7: Part-timers who would like to work longer hours",
+       subtitle  = "In current job at same basic rate of pay, 2018-2022",
+       #caption = c("Data: UK Labour Force Survey")
+       ) +
+  annotate(geom = "text", x = 2.5, y = 0.95, label = "2018", size = 3.5) +
+  annotate(geom = "text", x = 6.5, y = 0.95, label = "2019", size = 3.5) +
+  annotate(geom = "text", x = 10.5, y = 0.95, label = "2020", size = 3.5) +
+  annotate(geom = "text", x = 14.5, y = 0.95, label = "2021", size = 3.5) +
+  annotate(geom = "text", x = 18.5, y = 0.95, label = "2022", size = 3.5) +
+
+  # theme
+  theme_economist_white(gray_bg = FALSE, base_family = "Lato") +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "lines"),
+        plot.title = element_text(size = 14, margin = ggplot2::margin(2, 0, 0, 0)),
+        plot.subtitle = element_text(size = 12, hjust = 0, margin = ggplot2::margin(5, 0, 8, 0), color = "gray30"),
+        axis.title.x = element_text(margin = ggplot2::margin(t = 8), size = 12),
+        axis.title.y = element_text(margin = ggplot2::margin(r = 5), size = 12),
+        axis.text.x = element_text(size = 11, margin = margin(t = 2)),
+        axis.text.y = element_text(size = 11),
+        axis.ticks.length.x = unit(0.1, "cm"), 
+        legend.position = "top", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 11),
+        panel.grid.major = element_line(color = "gray90", linewidth = .5),
+        strip.text = element_text(face = "bold", hjust = 0, size = 11)) + # change the face_wrap title
+  guides(col = guide_legend(nrow = 1, byrow = TRUE, override.aes = list(size = 4)))
+
+
+p_more_hours_gender <- LFS_clean %>% 
+  filter(AGE >= 18 & AGE <= 64) %>%
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(INECAC05 %in% c(1, 2)) %>% #only employees and self-employed
+  filter(FTPTWK == 2) %>%  # only part-timers
+  filter(UNDEMP == 1) %>%
+  filter(!is.na(UNDHRS)) %>%
+  ggplot(aes(x = factor(sequence), y = UNDHRS, fill = as_label(SEX))) + 
+  geom_boxplot(alpha=0.5, outlier.shape=TRUE, show.legend = TRUE, outlier.color = "gray50") +
+  geom_vline(xintercept = 4.5, color = "#c9c9c9") + # gridline 2018
+  geom_vline(xintercept = 8.5, color = "#c9c9c9") + # gridline 2019
+  geom_vline(xintercept = 12.5, color = "#c9c9c9") + # gridline 2020
+  geom_vline(xintercept = 16.5, color = "#c9c9c9") + # gridline 2021
+
+  # scale and colour
+  coord_cartesian(ylim = c(0, 52)) +
+  scale_fill_discrete_qualitative(palette = "Dark 3") +
+  scale_y_continuous(breaks = seq(0,50, 5), limits = c(0, 52)) +
+  scale_x_discrete(limits=c("1","2","3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"),
+                     labels=c("Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec")) +
+  # annotation
+  labs(x = "Calendar quarter", 
+       y = "Extra hours wished to work",
+       title =" ",
+       #subtitle  = "Part-time workers in current job at same basic rate of pay, 2018-2022",
+       caption = c("Data: UK Labour Force Survey")
+       ) +
+  annotate(geom = "text", x = 2.5, y = 52, label = "2018", size = 3.5) +
+  annotate(geom = "text", x = 6.5, y = 52, label = "2019", size = 3.5) +
+  annotate(geom = "text", x = 10.5, y = 52, label = "2020", size = 3.5) +
+  annotate(geom = "text", x = 14.5, y = 52, label = "2021", size = 3.5) +
+  annotate(geom = "text", x = 18.5, y = 52, label = "2022", size = 3.5) +
+
+  # theme
+  theme_economist_white(gray_bg = FALSE, base_family = "Lato") +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "lines"),
+        plot.title = element_text(size = 14, margin = ggplot2::margin(2, 0, 0, 0)),
+        plot.subtitle = element_text(size = 12, hjust = 0, margin = ggplot2::margin(5, 0, 8, 0), color = "gray30"),
+        axis.title.x = element_text(margin = ggplot2::margin(t = 8), size = 11),
+        axis.title.y = element_text(margin = ggplot2::margin(r = 5), size = 11),
+        axis.text.x = element_text(size = 11, margin = margin(t = 2)),
+        axis.text.y = element_text(size = 11),
+        axis.ticks.length.x = unit(0.1, "cm"), 
+        legend.position = "none", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 11),
+        panel.grid.major = element_line(color = "gray90", linewidth = .5),
+        strip.text = element_text(face = "bold", hjust = 0, size = 11)) + # change the face_wrap title
+  guides(col = guide_legend(nrow = 1, byrow = TRUE, override.aes = list(size = 4)))
+
+
+p_under_gender / p_more_hours_gender 
+
+
+```
+
+
+```{r}
+
+t_earn_extra <- LFS_clean %>% # summary table
+  filter(AGE >= 18 & AGE <= 64) %>% 
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(INECAC05 %in% c("1")) %>% #only employees and self-employed
+  filter(DIFJOB == 2) %>% # only those who are not looking for an additional job or change job
+  filter(FTPTWK == 2) %>% # only part-timers
+  filter(GRSSWK > 0) %>%
+  filter(!is.na(UNDEMP)) %>% # remove NA
+  group_by(year, sequence, quarter, SEX, UNDEMP) %>% 
+  summarise(mean_earnings = weighted_mean(GRSSWK, weights = PIWT),
+            median_earnings = weighted_median(GRSSWK, weights = PIWT)) %>% 
+  as_label(.)
+
+t_under_hours_extra <- LFS_clean %>% # summary table
+  filter(AGE >= 18 & AGE <= 64) %>% 
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(FTPTWK == 2) %>%  # only part-timers
+  filter(INECAC05 %in% c(1, 2)) %>% #only employees and self-employed
+  filter(DIFJOB == 2) %>% # only those who are not looking for an additional job or change job
+  filter(FTPTWK == 2) %>% # only part-timers
+  filter(!is.na(UNDEMP)) %>%
+  select(year, quarter, SEX, UNDEMP, BUSHR) %>% # usual hours 
+  filter(!is.na(BUSHR)) %>%
+  group_by(year, quarter, SEX, UNDEMP) %>%
+  summarise(Hours = median(BUSHR)) %>%
+  as_label(.)
+
+
+```
+The additional hours wished to work could be to some extent driven by lower earnings than those who do not want extra hours. Figure 8 shows that gross weekly earnings are consistently lower for those who would like to work extra hours, particularly for women. This may be due to lower hours worked by those female part-timers who want more hours (median usual hours between between 16 to 20 hours per week), compared to a stable median of 20 hours for those women who do not work additional hours. Weekly earnings for male part-timers wanting extra hours have equalised to those not wanting more hours in the last three quarters of 2022. The median usual hours per week is 20 for both groups of male part-timers and for all periods.
+
+```{r extra hours and earnings plot, fig.width= 11, fig.height=5, fig.fullwidth=TRUE, fig.cap= "Figure 8: Whether would like to work longer hours by earnings"}
+
+p_earn_extra  <- t_earn_extra  %>% 
+  ggplot(aes(x = sequence, y = median_earnings, fill = factor(UNDEMP))) + # line graph
+  geom_bar(stat="identity", position = "dodge", width=0.5) + 
+  geom_vline(xintercept = 4.5, color = "#c9c9c9") + # gridline 2018
+  geom_vline(xintercept = 8.5, color = "#c9c9c9") + # gridline 2019
+  geom_vline(xintercept = 12.5, color = "#c9c9c9") + # gridline 2020
+  geom_vline(xintercept = 16.5, color = "#c9c9c9") + # gridline 2021
+  facet_wrap(.~ SEX) + 
+
+  # scale and colour
+  scale_fill_discrete_qualitative(palette = "Dark 2") +
+  scale_y_continuous(breaks = seq(0,300, 25), limits = c(0, 300), labels = comma) +
+  scale_x_continuous(breaks=c(1:20),
+                     labels=c("Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec")) +
+  # annotation
+  labs(x = "Calendar quarter", 
+       y = "Gross weekly pay",
+       #title ="Figure 8: Whether would like to work longer hours by earnings",
+       subtitle  = "Median gross weekly pay in main job between those who want and those who do not want longer hours, 2018-2022",
+      caption = c("Data: UK Labour Force Survey")
+       ) +
+  annotate(geom = "text", x = 2.5, y = 290, label = "2018", size = 3.5) +
+  annotate(geom = "text", x = 6.5, y = 290, label = "2019", size = 3.5) +
+  annotate(geom = "text", x = 10.5, y = 290, label = "2020", size = 3.5) +
+  annotate(geom = "text", x = 14.5, y = 290, label = "2021", size = 3.5) +
+  annotate(geom = "text", x = 18.5, y = 290, label = "2022", size = 3.5) +
+
+  # theme
+  theme_economist_white(gray_bg = FALSE, base_family = "Lato") +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "lines"),
+        plot.title = element_text(size = 14, margin = ggplot2::margin(2, 0, 0, 0)),
+        plot.subtitle = element_text(size = 12, hjust = 0, margin = ggplot2::margin(8, 0, 10, 0), color = "gray30"),
+        axis.title.x = element_text(margin = ggplot2::margin(t = 8), size = 11),
+        axis.title.y = element_text(margin = ggplot2::margin(r = 5), size = 11),
+        axis.text.x = element_text(size = 11, margin = margin(t = 2)),
+        axis.text.y = element_text(size = 11),
+        axis.ticks.length.x = unit(0.1, "cm"), 
+        legend.position = "top", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 11),
+        panel.grid.major = element_line(color = "gray90", linewidth = .5),
+        strip.text = element_text(face = "bold", hjust = 0, size = 11)) + # change the face_wrap title
+  guides(col = guide_legend(nrow = 1, byrow = TRUE, override.aes = list(size = 3)))
+
+p_earn_extra
+
+```
+
+
+# What are the reasons for part-time work?
+
+Part-time jobs are lower paid than full-time jobs, on the whole, and they bring a range of career penalties. There are various reasons for working on a part-time basis. The Labour Force Survey disaggregates part-time employment by reason as follows:
+
+- those who could not find full-time jobs
+- those who did not want full-time jobs
+- those who were ill or were disabled
+- those who were students or were at school
+
+It also includes those who do not give a reason for part-time working. We focus on those who could not find a full-time job (involuntary part-time work).
+
+
+## While male part-timers cannot find a full-time job, female part-timers do not want one
+
+Most female part-timers say that they do not want a full-time job (close to 80% as shown in Figure 9). This is because they are invariably working part-time to fit around other roles in their lives. Other than students and older workers approaching retirement age, men who work part-time in the UK are largely doing so involuntarily. This means that they are looking for full-time work but cannot find it.
+
+```{r reasons by sex table, echo=FALSE}
+
+options(digits = 3)
+
+t_yptwrk_gender <- LFS_clean %>% # summary table
+  filter(AGE >= 18 & AGE <= 64) %>% 
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(INECAC05 %in% c(1, 2)) %>% #only employees and self-employed
+  filter(FTPTWK == 2) %>%  # only part-time
+  group_by(year, sequence, quarter, SEX, YPTJOB) %>% 
+  summarise(count = sum(PWT)) %>% 
+  group_by(year, quarter, SEX,) %>% 
+  # percentage part-time per quarter
+  mutate(percentage = count/sum(count)) %>% 
+  filter(YPTJOB %in% c("3", "4")) %>% # could not find 
+  as_label(.)
+
+```
+
+```{r reasons by sex plot, fig.width= 10, fig.height=4, fig.fullwidth=TRUE, fig.cap= "Figure 9: Reasons for part-time work"}
+
+p_yptwrk_gender <- t_yptwrk_gender %>% 
+  ggplot(aes(x = sequence, y = percentage, colour = factor(SEX))) + # line graph
+  geom_line(size = 0.7, show.legend = FALSE) +  
+  geom_point(shape = 19, show.legend = TRUE) +
+  geom_vline(xintercept = 4.5, color = "#c9c9c9") + # gridline 2018
+  geom_vline(xintercept = 8.5, color = "#c9c9c9") + # gridline 2019
+  geom_vline(xintercept = 12.5, color = "#c9c9c9") + # gridline 2020
+  geom_vline(xintercept = 16.5, color = "#c9c9c9") + # gridline 2021
+  facet_wrap(. ~ YPTJOB) +
+
+  # scale and colour
+  scale_color_discrete_qualitative(palette = "Dark 3") +
+  scale_y_continuous(breaks = seq(0,1, 0.1), limits = c(0, 1), labels =
+                       scales::percent_format(accuracy = 1L)) +
+  scale_x_continuous(breaks=c(1:20),
+                     labels=c("Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec")) +
+  # annotation
+  labs(x = "Calendar quarter", 
+       y = "% of part-time workers",
+       #title ="Figure 9: Reasons for part-time work",
+       subtitle  = "Male and female part-time workers, 2018-2022",
+       caption = c("Data: UK Labour Force Survey")
+       ) +
+  annotate(geom = "text", x = 2.5, y = 0.95, label = "2018", size = 3.5) +
+  annotate(geom = "text", x = 6.5, y = 0.95, label = "2019", size = 3.5) +
+  annotate(geom = "text", x = 10.5, y = 0.95, label = "2020", size = 3.5) +
+  annotate(geom = "text", x = 14.5, y = 0.95, label = "2021", size = 3.5) +
+  annotate(geom = "text", x = 18.5, y = 0.95, label = "2022", size = 3.5) +
+
+  # theme
+  theme_economist_white(gray_bg = FALSE, base_family = "Lato") +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "lines"),
+        plot.title = element_text(size = 14, margin = ggplot2::margin(2, 0, 0, 0)),
+        plot.subtitle = element_text(size = 12, hjust = 0, margin = ggplot2::margin(5, 0, 5, 0), colour = "gray30"),
+        axis.title.x = element_text(margin = ggplot2::margin(t = 8), size = 11),
+        axis.title.y = element_text(margin = ggplot2::margin(r = 5), size = 11),
+        axis.text.x = element_text(size = 11, margin = margin(t = 2)),
+        axis.text.y = element_text(size = 11),
+        axis.ticks.length.x = unit(0.1, "cm"), 
+        axis.text.y.right =  element_text(margin = margin(l = 4)),
+        axis.title.y.right = element_blank(),
+        legend.position = "top", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 11),
+        panel.grid.major = element_line(color = "gray90", linewidth = .5),
+        strip.text = element_text(face = "bold", hjust = 0, size = 12, margin = margin(b = 2))) + # change the face_wrap title
+  guides(col = guide_legend(nrow = 1, byrow = TRUE, override.aes = list(size = 5)))
+
+p_yptwrk_gender # print the plot
+
+
+
+```
+
+
+## Involuntary part-time is common among younger workers 
+
+Figure 10 shows that younger workers struggle more at finding full-time work. This is particularly the case of female part-timers between 18 to 29 years old for all periods. Male part-timers show a similar trend in the last two quarter of 2022. For most other periods it is those between 30 to 39 with more difficulties to find full-time work. These trends worsen when the pandemic hit and remained high until the first quarter of 2021 when the most affected workers started to progressively come back to pre-pandemic levels. Those between 40 and 49 years old were the most impacted with involuntary part-time with the pandemic which saw their levels doubling until the first quarter of 2021. 
+
+```{r reasons by age table, echo=FALSE}
+
+options(digits = 3)
+
+t_yptwrk_age <- LFS_clean %>% # summary table
+  filter(AGE >= 18 & AGE <= 64) %>% 
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(INECAC05 %in% c(1, 2)) %>% #only employees and self-employed
+  filter(FTPTWK == 2) %>%  # only part-timers
+  group_by(year, sequence, quarter, SEX, AGEEUL3, YPTJOB) %>% 
+  summarise(count = sum(PWT)) %>% 
+  group_by(year, quarter, SEX, AGEEUL3) %>% 
+  # percentage part-time per quarter
+  mutate(percentage = count/sum(count)) %>% 
+  filter(YPTJOB %in% c("3")) %>% # could not find
+  filter(!(AGEEUL3 %in% c(1, 7))) %>% 
+  as_label(.)
+
+```
+
+
+```{r reasons age plot, fig.width= 10, fig.height=5, fig.fullwidth=TRUE, fig.cap= "Figure 10: Part-time workers who could not find a full-time job by age group"}
+
+p_yptwrk_age <- t_yptwrk_age %>% 
+  ggplot(aes(x = sequence, y = percentage, colour = factor(AGEEUL3))) + # line graph
+  geom_line(size = 0.7, show.legend = FALSE) +  
+  geom_point(shape = 19, show.legend = TRUE) +
+  geom_vline(xintercept = 4.5, color = "#c9c9c9") + # gridline 2018
+  geom_vline(xintercept = 8.5, color = "#c9c9c9") + # gridline 2019
+  geom_vline(xintercept = 12.5, color = "#c9c9c9") + # gridline 2020
+  geom_vline(xintercept = 16.5, color = "#c9c9c9") + # gridline 2021
+  facet_grid(. ~ SEX) +
+  
+  # scale and colour
+  scale_color_discrete_qualitative(palette = "Set 2") +
+  scale_y_continuous(breaks = seq(0,0.5, 0.05), limits = c(0, 0.53), labels =
+                       scales::percent_format(accuracy = 1L), sec.axis = dup_axis()) +
+  scale_x_continuous(breaks=c(1:20),
+                     labels=c("Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec")) +
+  # annotation
+  labs(x = "Calendar quarter", 
+       y = "% of part-time workers",
+       #title ="Figure 10: Part-time workers who could not find a full-time job by age group",
+       subtitle  = "Could not find a full-time job as a percentage of all part-time workers in the age group, 2018-2022",
+       caption = c("Data: UK Labour Force Survey")
+       ) +
+  annotate(geom = "text", x = 2.5, y = 0.52, label = "2018", size = 3.2) +
+  annotate(geom = "text", x = 6.5, y = 0.52, label = "2019", size = 3.2) +
+  annotate(geom = "text", x = 10.5, y = 0.52, label = "2020", size = 3.2) +
+  annotate(geom = "text", x = 14.5, y = 0.52, label = "2021", size = 3.2) +
+  annotate(geom = "text", x = 18.5, y = 0.52, label = "2022", size = 3.2) +
+
+# theme
+  theme_economist_white(gray_bg = FALSE, base_family = "Lato") +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "lines"),
+        plot.title = element_text(size = 14, margin = ggplot2::margin(2, 0, 0, 0)),
+        plot.subtitle = element_text(size = 12, hjust = 0, margin = ggplot2::margin(5, 0, 5, 0), colour = "grey30"),
+        axis.title.x = element_text(margin = ggplot2::margin(t = 8), size = 11),
+        axis.title.y = element_text(margin = ggplot2::margin(r = 5), size = 11),
+        axis.text.x = element_text(size = 11, margin = margin(t = 2)),
+        axis.text.y = element_text(size = 11),
+        axis.ticks.length.x = unit(0.1, "cm"), 
+        axis.text.y.right =  element_text(margin = margin(l = 4)),
+        axis.title.y.right = element_blank(),
+        legend.position = "top", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 11),
+        panel.grid.major = element_line(color = "gray90", linewidth = .5),
+        strip.text = element_text(face = "bold", hjust = 0, size = 11)) + # change the face_wrap title
+  guides(col = guide_legend(nrow = 1, byrow = TRUE, override.aes = list(size = 5)))
+
+p_yptwrk_age # print the plot
+
+```
+
+##  Involuntary part-time is more common among minority-ethic part-timers 
+
+Minority-ethic workers find it more difficult to find a full-time job as showed in Figure 11. The gap between white and minority-ethnic workers is narrower for female workers. The impact of pandemic was worse for minority-ethnic workers in both cases, but levels went back to pre-pandemic levels in early 2021.
+
+
+```{r reasons by ethnicity table, echo=FALSE}
+
+t_yptwrk_ethnicity <- LFS_clean %>% # summary table
+  filter(AGE >= 18 & AGE <= 64) %>% 
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(INECAC05 %in% c(1, 2)) %>% #only employees and self-employed
+  filter(FTPTWK == 2) %>%  # omit no answers and no apply
+  group_by(year, sequence, quarter, SEX, ETHUKEUL2, YPTJOB) %>% 
+  summarise(count = sum(PWT)) %>% 
+  group_by(year, quarter, ETHUKEUL2) %>% 
+  # percentage part-time per quarter
+  mutate(percentage = count/sum(count)) %>% 
+  filter(YPTJOB %in% c("3") & !is.na(ETHUKEUL2)) %>% # could not find
+  as_label(.)
+
+
+```
+
+```{r reason ethnicity plot, fig.width= 9, fig.height=4.5, fig.fullwidth=TRUE, fig.cap= "Figure 11: Part-time workers who could not find a full-time job by ethnicity"}
+
+p_yptwrk_ethnicity <- t_yptwrk_ethnicity %>% 
+  ggplot(aes(x = sequence, y = percentage, colour = factor(ETHUKEUL2))) + # line graph
+  geom_line(size = 0.7, show.legend = FALSE) +  
+  geom_point(shape = 19, show.legend = TRUE) +
+  geom_vline(xintercept = 4.5, color = "#c9c9c9") + # gridline 2018
+  geom_vline(xintercept = 8.5, color = "#c9c9c9") + # gridline 2019
+  geom_vline(xintercept = 12.5, color = "#c9c9c9") + # gridline 2020
+  geom_vline(xintercept = 16.5, color = "#c9c9c9") + # gridline 2021
+  facet_wrap(. ~ SEX) +
+  
+  # scale and colour
+  scale_color_discrete_qualitative(palette = "Set 2") +
+  scale_y_continuous(breaks = seq(0,0.5, 0.05), limits = c(0, 0.5), labels =
+                       scales::percent_format(accuracy = 1L)) +
+  scale_x_continuous(breaks=c(1:20),
+                     labels=c("Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec")) +
+  # annotation
+  labs(x = "Calendar quarter", 
+       y = "% of part-time workers",
+       #title ="Figure 11: Part-time workers who could not find a full-time job by ethnicity",
+       subtitle  = "Could not find a full-time job as a percentage of all part-time workers in each ethnic group, 2018-2022",
+       caption = c("Data: UK Labour Force Survey")
+       ) +
+  annotate(geom = "text", x = 2.5, y = 0.48, label = "2018", size = 3.2) +
+  annotate(geom = "text", x = 6.5, y = 0.48, label = "2019", size = 3.2) +
+  annotate(geom = "text", x = 10.5, y = 0.48, label = "2020", size = 3.2) +
+  annotate(geom = "text", x = 14.5, y = 0.48, label = "2021", size = 3.2) +
+  annotate(geom = "text", x = 18.5, y = 0.48, label = "2022", size = 3.2) +
+
+# theme
+  theme_economist_white(gray_bg = FALSE, base_family = "Lato") +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "lines"),
+        plot.title = element_text(size = 14, margin = ggplot2::margin(2, 0, 0, 0)),
+        plot.subtitle = element_text(size = 12, hjust = 0, margin = ggplot2::margin(5, 0, 8, 0), colour = "grey30"),
+        axis.title.x = element_text(margin = ggplot2::margin(t = 8), size = 11),
+        axis.title.y = element_text(margin = ggplot2::margin(r = 5), size = 11),
+        axis.text.x = element_text(size = 10, margin = margin(t = 2)),
+        axis.text.y = element_text(size = 11),
+        axis.text.y.right =  element_text(margin = margin(l = 4)),
+        axis.title.y.right = element_text(size = 11),
+        axis.ticks.length.x = unit(0.1, "cm"),
+        legend.position = "top", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 11),
+        panel.grid.major = element_line(color = "gray90", linewidth = .5),
+        strip.text = element_text(face = "bold", hjust = 0, size = 11, margin = ggplot2::margin(t = 5, b = 5))) +
+  guides(col = guide_legend(nrow = 1, byrow = TRUE, override.aes = list(size = 5)))
+
+p_yptwrk_ethnicity # print the plot
+
+```
+
+
+## Semi-routine and routine occupations are more likely to be involuntary part-timers
+
+Workers in semi-routine and routine occupations tend to have a harder time finding full-time employment (20% and above of the part-timers in that occupational category were involuntarily so in Figure 12). They also experienced a progressive growth in involuntary part-time working since the pandemic started and until early 2021. Lower supervisory and technical part-time workers saw the steepest increase in involuntary part-timers. Their levels dropped below pre-pandemic levels in January-March 2021 and remained lower. A sharp rise in involuntary part-time work was also experienced by the self-employed in 2020. The increase stabilised at the end of 2020 and into 2021. By the end of 2022 self-employed workers in an involuntary part-time reached the lowest levels compared to pre-pandemic levels.  
+
+```{r reasons by occupations table, echo=FALSE}
+
+t_yptwrk_class <- LFS_clean %>% # summary table
+  filter(AGE >= 18 & AGE <= 64) %>% 
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(INECAC05 %in% c(1, 2)) %>% #only employees and self-employed
+  filter(FTPTWK == 2) %>%  # omit no answers and no apply
+  filter(!NSEC2 == 6) %>%
+  group_by(year, sequence, quarter, NSEC2, YPTJOB) %>% 
+  summarise(count = sum(PWT)) %>% 
+  group_by(year, quarter, NSEC2) %>% 
+  # percentage part-time per quarter
+  mutate(percentage = count/sum(count)) %>% 
+  filter(YPTJOB %in% c("3") & !is.na(NSEC2)) %>% # could not find
+  as_label(.)
+
+
+```
+
+```{r reason class plot, fig.width= 9, fig.height=4.5, fig.fullwidth=TRUE, fig.cap= "Figure 12: Part-time workers who could not find a full-time job by occupational category"}
+
+p_yptwrk_class <- t_yptwrk_class %>% 
+  ggplot(aes(x = sequence, y = percentage, colour = factor(NSEC2))) + # line graph
+  geom_line(size = 0.7, show.legend = FALSE) +  
+  geom_point(shape = 19, show.legend = TRUE) +
+  geom_vline(xintercept = 4.5, color = "#c9c9c9") + # gridline 2018
+  geom_vline(xintercept = 8.5, color = "#c9c9c9") + # gridline 2019
+  geom_vline(xintercept = 12.5, color = "#c9c9c9") + # gridline 2020
+  geom_vline(xintercept = 16.5, color = "#c9c9c9") + # gridline 2021
+  #facet_wrap(. ~ SEX) +
+  
+  # scale and colour
+  scale_color_discrete_qualitative(palette = "Set 2") +
+  scale_y_continuous(breaks = seq(0,0.5, 0.05), limits = c(0, 0.5), labels =
+                       scales::percent_format(accuracy = 1L), sec.axis = dup_axis()) +
+  scale_x_continuous(breaks=c(1:20),
+                     labels=c("Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec")) +
+  # annotation
+  labs(x = "Calendar quarter", 
+       y = "% of part-time workers",
+       #title ="Figure 12: Part-time workers who could not find a full-time job by occupational category",
+       subtitle  = "Could not find a full-time job as a percentage of all part-time workers in the category, 2018-2022",
+       caption = c("Data: UK Labour Force Survey")
+       ) +
+  annotate(geom = "text", x = 2.5, y = 0.48, label = "2018", size = 3.2) +
+  annotate(geom = "text", x = 6.5, y = 0.48, label = "2019", size = 3.2) +
+  annotate(geom = "text", x = 10.5, y = 0.48, label = "2020", size = 3.2) +
+  annotate(geom = "text", x = 14.5, y = 0.48, label = "2021", size = 3.2) +
+  annotate(geom = "text", x = 18.5, y = 0.48, label = "2022", size = 3.2) +
+
+# theme
+  theme_economist_white(gray_bg = FALSE, base_family = "Lato") +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "lines"),
+        plot.title = element_text(size = 14, margin = ggplot2::margin(2, 0, 0, 0)),
+        plot.subtitle = element_text(size = 12, hjust = 0, margin = ggplot2::margin(5, 0, 5, 0), colour = "grey30"),
+        axis.title.x = element_text(margin = ggplot2::margin(t = 8), size = 11),
+        axis.title.y = element_text(margin = ggplot2::margin(r = 5), size = 11),
+        axis.text.x = element_text(size = 11, margin = margin(t = 2)),
+        axis.text.y = element_text(size = 11),
+        axis.ticks.length.x = unit(0.1, "cm"), 
+        axis.text.y.right =  element_text(margin = margin(l = 4)),
+        axis.title.y.right = element_blank(),
+        legend.position = "right", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 11),
+        panel.grid.major = element_line(color = "gray90", linewidth = .5),
+        strip.text = element_text(face = "bold", size = 11,  hjust = 0)) + # change the face_wrap title
+  guides(col = guide_legend(nrow = 5, byrow = TRUE, override.aes = list(size = 4)))
+p_yptwrk_class # print the plot
+
+
+
+```
+
+
+## Part-time workers with no qualification struggle the most to find full-time employment
+
+Figure 13 shows that those part-timers who do no have a qualification or who have other qualifications such as entry level, essential skills, apprenticeships and vocational qualifications among others are more likely to find themselves in involuntary part-time. Those with a degree or equivalent (e.g., bachelor's degree, postgraduate, master's degree, doctorate, etc.) and with a higher education diploma (e.g. foundation degree, teaching/higher education diploma, higher national certificate, etc.) struggle the least to find a full-time job compared to the other groups.
+
+
+```{r reasons by education table, echo=FALSE}
+
+t_yptwrk_edu <- LFS_clean %>% # summary table
+  filter(AGE >= 18 & AGE <= 64) %>% 
+  filter(ILODEFR == 1) %>% # only people in employment
+  filter(INECAC05 %in% c(1, 2)) %>% #only employees and self-employed
+  filter(FTPTWK == 2) %>%  # only part-timers
+  group_by(year, sequence, quarter, quali2, YPTJOB) %>% 
+  summarise(count = sum(PWT)) %>% 
+  group_by(year, quarter, quali2) %>% 
+  # percentage part-time per quarter
+  mutate(percentage = count/sum(count)) %>% 
+  filter(YPTJOB %in% c("3") & !is.na(quali2) & !quali2 %in% c("0")) %>% # could not find
+  as_label(.)
+
+
+```
+
+```{r reason education plot, fig.width= 9, fig.height=4.5, fig.fullwidth=TRUE, fig.cap= "Figure 13: Part-time workers who could not find a full-time job by educational level"}
+
+p_yptwrk_edu <- t_yptwrk_edu %>% 
+  ggplot(aes(x = sequence, y = percentage, colour = factor(quali2))) + # line graph
+  geom_line(size = 0.7, show.legend = FALSE) +  
+  geom_point(shape = 19, show.legend = TRUE) +
+  geom_vline(xintercept = 4.5, color = "#c9c9c9") + # gridline 2018
+  geom_vline(xintercept = 8.5, color = "#c9c9c9") + # gridline 2019
+  geom_vline(xintercept = 12.5, color = "#c9c9c9") + # gridline 2020
+  geom_vline(xintercept = 16.5, color = "#c9c9c9") + # gridline 2021
+  #facet_wrap(. ~ SEX) +
+  
+  # scale and colour
+  scale_color_discrete_qualitative(palette = "Set 2") +
+  scale_y_continuous(breaks = seq(0,0.5, 0.05), limits = c(0, 0.5), labels =
+                       scales::percent_format(accuracy = 1L), sec.axis = dup_axis()) +
+  scale_x_continuous(breaks=c(1:20),
+                     labels=c("Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec",
+                             "Jan-\nMar","Apr-\nJun","Jul-\nSep","Oct-\nDec")) +
+  # annotation
+  labs(x = "Calendar quarter", 
+       y = "% of part-time workers",
+       #title ="Figure 13: Part-time workers who could not find a full-time job by educational level",
+       subtitle  = "Could not find a full-time job as a percentage of all part-time workers in the category, 2018-2022",
+       caption = c("Data: UK Labour Force Survey")
+       ) +
+  annotate(geom = "text", x = 2.5, y = 0.48, label = "2018", size = 3.2) +
+  annotate(geom = "text", x = 6.5, y = 0.48, label = "2019", size = 3.2) +
+  annotate(geom = "text", x = 10.5, y = 0.48, label = "2020", size = 3.2) +
+  annotate(geom = "text", x = 14.5, y = 0.48, label = "2021", size = 3.2) +
+  annotate(geom = "text", x = 18.5, y = 0.48, label = "2022", size = 3.2) +
+
+# theme
+  theme_economist_white(gray_bg = FALSE, base_family = "Lato") +
+  theme(plot.margin = unit(c(0, 0, 0, 0), "lines"),
+        plot.title = element_text(size = 14, margin = ggplot2::margin(2, 0, 0, 0)),
+        plot.subtitle = element_text(size = 12, hjust = 0, margin = ggplot2::margin(5, 0, 5, 0), colour = "grey30"),
+        axis.title.x = element_text(margin = ggplot2::margin(t = 8), size = 11),
+        axis.title.y = element_text(margin = ggplot2::margin(r = 5), size = 11),
+        axis.text.x = element_text(size = 11, margin = margin(t = 2)),
+        axis.text.y = element_text(size = 11),
+        axis.ticks.length.x = unit(0.1, "cm"), 
+        axis.text.y.right =  element_text(margin = margin(l = 4)),
+        axis.title.y.right = element_blank(),
+        legend.position = "right", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 11),
+        panel.grid.major = element_line(color = "gray90", linewidth = .5),
+        strip.text = element_text(face = "bold", size = 11,  hjust = 0)) + # change the face_wrap title
+  guides(col = guide_legend(nrow = 6, byrow = TRUE, override.aes = list(size = 4)))
+
+p_yptwrk_edu # print the plot
+
+
+
+```
+
+
