@@ -54,7 +54,7 @@ LFS_clean <- LFS_clean %>%
                     `7`="18-24", `8`="18-24", `9`="18-24", `10`="18-24", `11`="18-24", `12`="18-24", `13`="18-24", 
                     `14`="25-29", 
                     `15`="30-34", 
-                    `16`="30-39", 
+                    `16`="35-39", 
                     `17`="40-44", 
                     `18`="45-49",
                     `19`="50-54", 
@@ -63,9 +63,22 @@ LFS_clean <- LFS_clean %>%
                     `22`="Above 64", `23` = "Above 64", `24`= "Above 64", `25`= "Above 64", `26` = "Above 64", `27`= "Above 64", `28`= "Above 64")) %>% 
   as_numeric(., keep.labels = TRUE)
 
-LFS_clean$AGEEUL <- NULL # delete old variable
-
 set_label(LFS_clean$AGEEUL2) <- "Age" # add variable label
+
+
+LFS_clean <- LFS_clean %>% 
+  mutate(AGEEUL3 = recode_factor(factor(AGEEUL),
+                                 `1`="Below 18", `2`="Below 18", `3`="Below 18", `4`="Below 18", `5`="Below 18", `6`="Below 18",
+                                 `7`="18-29", `8`="18-29", `9`="18-29", `10`="18-29", `11`="18-29", `12`="18-29", `13`="18-29", `14`="18-29", 
+                                 `15`="30-39", `16`="30-39", 
+                                 `17`="40-49", `18`="40-49",
+                                 `19`="50-59", `20`= "50-59", 
+                                 `21`= "60-64",
+                                 `22`="Above 64", `23` = "Above 64", `24`= "Above 64", `25`= "Above 64", `26` = "Above 64", `27`= "Above 64", `28`= "Above 64")) %>% 
+  as_numeric(., keep.labels = TRUE)
+
+set_label(LFS_clean$AGEEUL3) <- "Age" # add variable label
+
 
 ## Ethnicity 
 
@@ -84,7 +97,6 @@ LFS_clean$ETHUKEUL <- set_labels(LFS_clean$ETHUKEUL, labels = c(
 
 get_labels(LFS_clean$ETHUKEUL, values = "n")
 
-
 LFS_clean <- LFS_clean %>% mutate(ETHUKEUL2 = recode_factor(factor(ETHUKEUL), # create a white vs ethnic minority variable
                                                              `1` = "White",
                                                              `2` = "Minority-ethnic", `3` = "Minority-ethnic", 
@@ -97,6 +109,24 @@ LFS_clean <- LFS_clean %>% mutate(ETHUKEUL2 = recode_factor(factor(ETHUKEUL), # 
 set_label(LFS_clean$ETHUKEUL2) <- "White and Minority-ethnic" # add variable label
 
 get_labels(LFS_clean$ETHUKEUL2, values = "n")
+
+
+LFS_clean <- LFS_clean %>% mutate(ETHUKEUL3 = recode_factor(factor(ETHUKEUL),
+                                  `1` = "White",
+                                  `2` = "Mixed/Multiple ethnic groups",
+                                  `3` = "Indian/Pakistani/Bangladeshi",
+                                  `4` = "Indian/Pakistani/Bangladeshi",
+                                  `5` = "Indian/Pakistani/Bangladeshi",
+                                  `6` = "Chinese & other Asian background",
+                                  `7` = "Chinese & other Asian background",
+                                  `8` = "Black/African/Caribbean/Black British",
+                                  `9` = "Other ethnic group")) %>% 
+                          as_numeric(., keep.labels = TRUE)
+
+set_label(LFS_clean$ETHUKEUL3) <- "Ethnicity" # add variable label
+
+get_labels(LFS_clean$ETHUKEUL3, values = "n")
+
 
 
 ## changing ILO value labels 
@@ -384,6 +414,7 @@ LFS_clean$higher <- set_labels(LFS_clean$higher, labels = c(
   "Don’t know" = 5))
 
 get_labels(LFS_clean$higher, values = "n") # check value labels 
+table(LFS_clean$higher)
 
 LFS_clean$degree <- remove_all_labels(LFS_clean$degree) # first degree education
 set_label(LFS_clean$degree) <- "Type of degree already held" # add variable label
@@ -395,21 +426,84 @@ LFS_clean$degree <- set_labels(LFS_clean$degree, labels = c(
   "Other" = 5,
   "Don’t know" = 6))
 
+table(LFS_clean$degree)
 get_labels(LFS_clean$degree, values = "n") # check value labels 
 
 LFS_clean$quali <- remove_all_labels(LFS_clean$quali) # any general qualifications  
 set_label(LFS_clean$quali) <- "Highest qualification" # add variable label
 LFS_clean$quali <- set_labels(LFS_clean$quali, labels = c(
-  "Degree or equivalent)" = 1,
+  "Degree or equivalent" = 1,
   "Higher education" = 2,
-  "GCE, A-level or equivalent" = 3,
+  "GCE, A-level or equivalent (level " = 3,
   "GCSE grades A*-C or equivalent" = 4,
   "Other qualifications" = 5,
   "No qualification" = 6,
   "Don’t know" = 7))
 
+table(as_label(LFS_clean$quali))
 get_labels(LFS_clean$quali, values = "n") # check value labels 
 
+LFS_clean <- LFS_clean %>% 
+  mutate(quali2 = 
+           case_when(quali == 1 ~ 4, 
+                     quali == 2 ~ 5,
+                     quali == 3 ~ 3,
+                     quali == 4 ~ 2,
+                     quali == 5 ~ 6,
+                     quali == 6 ~ 1, 
+                     quali == 7 ~ 0))
+
+LFS_clean$quali2 <- set_labels(LFS_clean$quali2, labels = c(
+  "Don’t know" = 0,
+  "No qualification" = 1,
+  "GCSE grades A*-C or equivalent (level 2)" = 2, 
+  "GCE, A-level or equivalent (level 3)" = 3, 
+  "Degree or equivalent (levels 4 to 6)" = 4, 
+  "Higher education (levels 7 to 8) " = 5, 
+  "Other qualifications" = 6))
+
+table(as_label(LFS_clean$quali2))
+
+
+## create an integrated education variable
+
+LFS_clean <- LFS_clean %>% 
+  mutate(education = 
+           case_when(higher == 1 ~ 8,  # level 8
+                     higher == 2 ~ 7 , # level 7
+                     higher == 3 ~ 7, # level 7
+                     higher == 4 ~ 7, # other = level 7
+                     higher == 5 ~ 0, # dont know
+                     degree == 2 ~ 6, # level 6
+                     degree == 3 ~ 5,  # level 5
+                     degree == 4 ~ 4 , # level 4
+                     degree == 6 ~ 0, # dont know 
+                     degree == 5 ~ 10,  #  other
+                     quali == 3 ~ 3, # level 3
+                     quali == 4 ~ 2,  # level 2
+                     quali == 6 ~ 1, # no qualification
+                     quali == 7 ~ 0, # don't know
+                     quali == 5 ~ 9, # other qualification
+                      ))  
+
+table(LFS_clean$education)
+
+set_label(LFS_clean$education) <- "Education levels" # add variable label
+LFS_clean$education <- set_labels(LFS_clean$education, labels = c(
+  "Don’t know" = 0,
+  "No qualification" = 1,
+  "Level 2 (e.g., GCSE grades A*-C or equivalent)" = 2, 
+  "Level 3 (e.g., GCE, A-level or equivalent)" = 3, 
+  "Level 4 (graduate membership of a professional institution)" = 4, 
+  "Level 5 (foundation degree)" = 5, 
+  "Level 6 (first degree)" = 6, 
+  "Level 7 (MSc, PCGE, other postgrad)" = 7,
+  "Level 8 (Doctorate)" = 8, 
+  "Other qualifications" = 9, 
+  "Other degree" = 10))
+
+get_labels(LFS_clean$education, values = "n") # check value labels 
+table(as_label(LFS_clean$education))
 
 ##  adding value labels to DIFJOB
 
