@@ -4,6 +4,8 @@
 
 ## Creating the variable "quarter", "PIWT" for income weight, YEAR, and PWT for population weighs among others
 
+get_labels(jm18$HIQUL15D, values = "n")
+
 jm18 <- jm18 %>% mutate(year = 2018, quarter = 1, sequence = 1, PIWT = PIWT18, PWT = PWT18, NSEC = NSECMJ10, 
                         occu1 = SC10MMJ, 
                         occu2 = SC10SMJ,
